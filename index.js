@@ -1,26 +1,27 @@
-const { REST } = require('discord.js');
-const { Routes } = require('discord-api-types/v9');
+const { Client, GatewayIntentBits, Events, Collection } = require("discord.js");
+const { token } = require('./config.json');
+const { readdirSync } = require("fs");
 
-const commands = [
-  {
-    name: 'ping',
-    description: 'Replies with Pong!',
-  },
-];
+const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
-const clientId = '1269322589801807892'; 
-const token = 'MTI2OTMyMjU4OTgwMTgwNzg5Mg.GguiYA.qBvV3WUQCPngggDQQOJl6JLM9HHS39zQ70NMHc'; 
+client.commands = new Collection();
+const commandList = readdirSync('./commands');
 
-const rest = new REST({ version: '9' }).setToken(token);
+for(let file of commandList){
+    let cmd = require('./commands/'+file);
+    client.commands.set(cmd.data.name, cmd);
+}
 
-(async () => {
-  try {
-    console.log('Started refreshing application (/) commands.');
+client.once(Events.ClientReady, client => {
+    console.log(`Online ${client.user.tag}!`);
+});
 
-    await rest.put(Routes.applicationCommands(clientId), { body: commands });
+client.on(Events.InteractionCreate, async interaction => {
+    if(!interaction.isChatInputCommand()) return;
 
-    console.log('Successfully reloaded application (/) commands.');
-  } catch (error) {
-    console.error(error);
-  }
-})();
+    let command = interaction.client.commands.get(interaction.commandName);
+    await command.execute(interaction);
+    console.log('BERES!!')
+});
+
+client.login(token);
